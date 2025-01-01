@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 import time
 import pandas as pd
 class FacebookGroupPostCrawl:
@@ -13,7 +14,9 @@ class FacebookGroupPostCrawl:
 
     def setup_driver(self):
         try:
-            self.driver = webdriver.Chrome()
+            chrome_options = Options()
+            chrome_options.add_argument("--disable-notifications") 
+            self.driver = webdriver.Chrome(options=chrome_options)
             self.driver.maximize_window()
         except Exception as e:
             print(f"Error: {e}")
@@ -36,8 +39,11 @@ class FacebookGroupPostCrawl:
             self.driver.get(f"https://www.facebook.com/groups/{self.group_id}/?sorting_setting=TOP_POSTS")
             time.sleep(5)
             postlist = set()
-            last_height = self.driver.execute_script("return document.body.scrollHeight")
-            for i in range(self.scroll_count):
+            i=0
+            while len(postlist) <= self.scroll_count:
+                check_len_postlist = len(postlist)
+                print(check_len_postlist)
+                self.driver.execute_script("return document.body.scrollHeight")
                 self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 time.sleep(3) 
                 post_elements = self.driver.find_elements(By.XPATH, "//div[contains(@role, 'article')]")
@@ -53,6 +59,12 @@ class FacebookGroupPostCrawl:
                         postlist.add((post_id,post_user,post_content))
                     except Exception as e:
                         continue
+                print('-------------')
+                print(len(postlist))
+                print('-------------')
+                if len(postlist) == check_len_postlist:
+                    break
+                i+=1
             return list(postlist)
         except Exception as e:
             print(f"{e}")
