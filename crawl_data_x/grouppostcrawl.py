@@ -1,6 +1,9 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
 import time
 import pandas as pd
 class FacebookGroupPostCrawl:
@@ -14,9 +17,13 @@ class FacebookGroupPostCrawl:
 
     def setup_driver(self):
         try:
-            chrome_options = Options()
-            chrome_options.add_argument("--disable-notifications") 
-            self.driver = webdriver.Chrome(options=chrome_options)
+            options = Options()
+            options.add_argument("--headless")
+            options.add_argument("--disable-notifications") 
+            self.driver = webdriver.Chrome(
+                service=Service(ChromeDriverManager().install()), 
+                options=options,
+            )
             self.driver.maximize_window()
         except Exception as e:
             print(f"Error: {e}")
@@ -34,6 +41,7 @@ class FacebookGroupPostCrawl:
         except Exception as e:
             print(f"Error: {e}")
             return False
+        
     def get_group_posts(self):
         try:
             self.driver.get(f"https://www.facebook.com/groups/{self.group_id}/?sorting_setting=RECENT_ACTIVITY")
@@ -71,13 +79,14 @@ class FacebookGroupPostCrawl:
             return list(postlist)
         except Exception as e:
             print(f"{e}")
+            
     def get_post_reactions(self,post_id):
         try:
             self.driver.get(f"https://www.facebook.com/groups/{self.group_id}/posts/{post_id}/") 
             time.sleep(10)
             self.driver.execute_script("return document.body.scrollHeight")
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(3)
+            time.sleep(10)
             xpaths = [
             "//span[@class='xrbpyxo x6ikm8r x10wlt62 xlyipyv x1exxlbk']",
             "//span[@class='xrbpyxo x6ikm8r x10wlt62 xlyipyv x1exxlbk']//span[contains(text(), '2')]"
@@ -97,7 +106,7 @@ class FacebookGroupPostCrawl:
                 try:
                     user_name = user.text.strip()
                     user_id = user.get_attribute("href").split("/user/")[1].split("/")[0]
-                    # print(f"Name: {user_name}, User ID: {user_id}")
+                    print(f"Name: {user_name}, User ID: {user_id}")
                     reactions.add((user_id,user_name))
                 except Exception as e:
                     print(f"Error processing reaction: {e}")
@@ -140,16 +149,21 @@ class FacebookGroupPostCrawl:
             except Exception as e:
                 print(f"Error fetching reactions: {e}")
                 return []
-    def get_detail_each_post(self,postlist):
+    def get_detail_each_post(self,file_path):
+        data = pd.read_excel(file_path)
+        post_ids = data['post_id']
+        print(post_ids)
         detailpost = set()
-        for post in postlist:
+        for post in post_ids:
             try:
-                post_id =  post[0]
-                post_reaction = self.get_post_reactions(post_id)
-                detailpost.add((post_id, tuple(post_reaction)))
+                post_reaction = self.get_post_reactions(post)
+                detailpost.add((post, tuple(post_reaction)))
+                self.save_reactions_to_excel(detailpost)
             except Exception as e:
                 print(f"Error processing post: {e}")
+
         return list(detailpost)
+
     def save_post_to_excel(self, postlist):
         try:
             file_name = f"ex_post.xlsx"
