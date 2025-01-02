@@ -36,16 +36,17 @@ class FacebookGroupPostCrawl:
             return False
     def get_group_posts(self):
         try:
-            self.driver.get(f"https://www.facebook.com/groups/{self.group_id}/?sorting_setting=TOP_POSTS")
+            self.driver.get(f"https://www.facebook.com/groups/{self.group_id}/?sorting_setting=RECENT_ACTIVITY")
             time.sleep(5)
             postlist = set()
             i=0
+            count_loop = 0
             while len(postlist) <= self.scroll_count:
                 check_len_postlist = len(postlist)
                 print(check_len_postlist)
                 self.driver.execute_script("return document.body.scrollHeight")
                 self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(3) 
+                time.sleep(5) 
                 post_elements = self.driver.find_elements(By.XPATH, "//div[contains(@role, 'article')]")
                 print(f"Found {len(post_elements)} post elements on scroll {i+1}")
                 for post in post_elements:
@@ -63,7 +64,9 @@ class FacebookGroupPostCrawl:
                 print(len(postlist))
                 print('-------------')
                 if len(postlist) == check_len_postlist:
-                    break
+                    count_loop+=1
+                    if count_loop == 10:
+                        break
                 i+=1
             return list(postlist)
         except Exception as e:
