@@ -17,7 +17,8 @@ try:
         # postlist = scraper.get_group_posts()
         # scraper.save_post_to_excel(postlist)
         file_path = 'ex_post.xlsx'
-        scraper.get_detail_each_post(file_path)
+        deitalpost = scraper.get_detail_each_post_comments(file_path)
+        scraper.save_comments_to_excel(deitalpost)
         time.sleep(10)
 except Exception as e:
     pass
